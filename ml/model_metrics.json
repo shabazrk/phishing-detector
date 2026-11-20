@@ -1,0 +1,269 @@
+{
+  "dataset_summary": {
+    "total_samples": 113,
+    "training_samples": 84,
+    "testing_samples": 29,
+    "feature_count": 26
+  },
+  "model_comparison": {
+    "Random Forest": {
+      "accuracy": 0.931,
+      "precision": 1.0,
+      "recall": 0.8462,
+      "f1_score": 0.9167,
+      "roc_auc": 1.0,
+      "confusion_matrix": [
+        [
+          16,
+          0
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "roc_curve": [
+        {
+          "fpr": 0.0,
+          "tpr": 0.0
+        },
+        {
+          "fpr": 0.0,
+          "tpr": 0.5385
+        },
+        {
+          "fpr": 0.0,
+          "tpr": 1.0
+        },
+        {
+          "fpr": 0.125,
+          "tpr": 1.0
+        },
+        {
+          "fpr": 0.25,
+          "tpr": 1.0
+        },
+        {
+          "fpr": 0.3125,
+          "tpr": 1.0
+        },
+        {
+          "fpr": 0.4375,
+          "tpr": 1.0
+        },
+        {
+          "fpr": 1.0,
+          "tpr": 1.0
+        }
+      ]
+    },
+    "Decision Tree": {
+      "accuracy": 0.8966,
+      "precision": 0.9167,
+      "recall": 0.8462,
+      "f1_score": 0.88,
+      "roc_auc": 0.8918,
+      "confusion_matrix": [
+        [
+          15,
+          1
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "roc_curve": [
+        {
+          "fpr": 0.0,
+          "tpr": 0.0
+        },
+        {
+          "fpr": 0.0625,
+          "tpr": 0.8462
+        },
+        {
+          "fpr": 1.0,
+          "tpr": 1.0
+        }
+      ]
+    },
+    "Logistic Regression": {
+      "accuracy": 0.8966,
+      "precision": 1.0,
+      "recall": 0.7692,
+      "f1_score": 0.8696,
+      "roc_auc": 0.9808,
+      "confusion_matrix": [
+        [
+          16,
+          0
+        ],
+        [
+          3,
+          10
+        ]
+      ],
+      "roc_curve": [
+        {
+          "fpr": 0.0,
+          "tpr": 0.0
+        },
+        {
+          "fpr": 0.0,
+          "tpr": 0.0769
+        },
+        {
+          "fpr": 0.0,
+          "tpr": 0.9231
+        },
+        {
+          "fpr": 0.25,
+          "tpr": 0.9231
+        },
+        {
+          "fpr": 0.25,
+          "tpr": 1.0
+        },
+        {
+          "fpr": 1.0,
+          "tpr": 1.0
+        }
+      ]
+    }
+  },
+  "feature_importances": [
+    {
+      "feature": "domain_length",
+      "importance": 0.2233
+    },
+    {
+      "feature": "suspicious_keyword_count",
+      "importance": 0.2129
+    },
+    {
+      "feature": "domain_shannon_entropy",
+      "importance": 0.1774
+    },
+    {
+      "feature": "count_hyphens",
+      "importance": 0.133
+    },
+    {
+      "feature": "https_with_suspicious_features",
+      "importance": 0.0446
+    },
+    {
+      "feature": "has_ip_address",
+      "importance": 0.033
+    },
+    {
+      "feature": "url_length",
+      "importance": 0.03
+    },
+    {
+      "feature": "count_subdomains",
+      "importance": 0.0285
+    },
+    {
+      "feature": "digit_ratio",
+      "importance": 0.0222
+    },
+    {
+      "feature": "is_https",
+      "importance": 0.0215
+    },
+    {
+      "feature": "typosquatting_risk",
+      "importance": 0.0152
+    },
+    {
+      "feature": "path_length",
+      "importance": 0.0144
+    },
+    {
+      "feature": "count_slashes",
+      "importance": 0.0126
+    },
+    {
+      "feature": "count_dots",
+      "importance": 0.0089
+    },
+    {
+      "feature": "high_risk_tld",
+      "importance": 0.0084
+    },
+    {
+      "feature": "has_non_standard_port",
+      "importance": 0.0033
+    },
+    {
+      "feature": "count_underscores",
+      "importance": 0.0024
+    },
+    {
+      "feature": "free_cloud_host",
+      "importance": 0.0023
+    },
+    {
+      "feature": "https_token_in_hostname",
+      "importance": 0.0017
+    },
+    {
+      "feature": "count_equal_signs",
+      "importance": 0.0013
+    },
+    {
+      "feature": "query_length",
+      "importance": 0.0012
+    },
+    {
+      "feature": "count_question_marks",
+      "importance": 0.0012
+    },
+    {
+      "feature": "https_http_protocol_mismatch",
+      "importance": 0.0009
+    },
+    {
+      "feature": "count_at_signs",
+      "importance": 0.0
+    },
+    {
+      "feature": "has_shortener",
+      "importance": 0.0
+    },
+    {
+      "feature": "double_slash_in_path",
+      "importance": 0.0
+    }
+  ],
+  "feature_names": [
+    "url_length",
+    "domain_length",
+    "path_length",
+    "query_length",
+    "count_dots",
+    "count_hyphens",
+    "count_underscores",
+    "count_slashes",
+    "count_question_marks",
+    "count_equal_signs",
+    "count_at_signs",
+    "digit_ratio",
+    "count_subdomains",
+    "has_ip_address",
+    "is_https",
+    "https_token_in_hostname",
+    "https_http_protocol_mismatch",
+    "has_shortener",
+    "suspicious_keyword_count",
+    "domain_shannon_entropy",
+    "has_non_standard_port",
+    "high_risk_tld",
+    "free_cloud_host",
+    "typosquatting_risk",
+    "double_slash_in_path",
+    "https_with_suspicious_features"
+  ]
+}

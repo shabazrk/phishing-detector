@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PhishGuard AI - Intelligent Phishing & Malicious Website Detection</title>
+  <meta name="description" content="AI-Based Phishing URL and Malicious Website Detection System using Random Forest and Explainable AI (XAI).">
+  <meta name="theme-color" content="#0f172a">
+
+  <!-- PWA Manifest & Apple Touch -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/static/icon-192.png">
+
+  <!-- Tailwind CSS CDN + Chart.js -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            cyber: {
+              900: '#0a0f1d',
+              800: '#0f172a',
+              700: '#1e293b',
+              neon: '#06b6d4',
+              accent: '#3b82f6',
+              danger: '#ef4444',
+              warning: '#f59e0b',
+              success: '#10b981'
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-cyber-900 text-slate-100 min-h-screen font-sans antialiased selection:bg-cyan-500 selection:text-black">
+
+  <!-- Top Navigation -->
+  <header class="sticky top-0 z-50 backdrop-blur-md bg-cyber-900/80 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('scanner')">
+        <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+          <i class="fa-solid fa-shield-halved text-white text-xl"></i>
+        </div>
+        <div>
+          <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">PhishGuard AI</span>
+          <span class="hidden sm:inline-block ml-2 text-xs uppercase px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800 font-medium">CSE 5th Sem Project</span>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="hidden md:flex items-center space-x-1">
+        <button onclick="switchTab('scanner')" id="tab-btn-scanner" class="nav-tab active px-3.5 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+          <i class="fa-solid fa-magnifying-glass"></i> URL Scanner
+        </button>
+        <button onclick="switchTab('batch')" id="tab-btn-batch" class="nav-tab px-3.5 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+          <i class="fa-solid fa-list-check"></i> Batch / Email
+        </button>
+        <button onclick="switchTab('metrics')" id="tab-btn-metrics" class="nav-tab px-3.5 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+          <i class="fa-solid fa-chart-line"></i> ML Viva Dashboard
+        </button>
+        <button onclick="switchTab('history')" id="tab-btn-history" class="nav-tab px-3.5 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+          <i class="fa-solid fa-clock-rotate-left"></i> History
+        </button>
+        <button onclick="switchTab('about')" id="tab-btn-about" class="nav-tab px-3.5 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+          <i class="fa-solid fa-circle-info"></i> About & HTTPS
+        </button>
+      </nav>
+
+      <!-- App Status / Install Pill -->
+      <div class="flex items-center space-x-3">
+        <button id="pwa-install-btn" class="hidden px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500 hover:bg-cyan-400 text-slate-900 transition flex items-center gap-1.5 shadow-md">
+          <i class="fa-solid fa-download"></i> Install App
+        </button>
+        <div class="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700 text-xs">
+          <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-slate-300 font-mono">Engine Active</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Nav Bar -->
+    <div class="md:hidden flex overflow-x-auto px-4 py-2 space-x-2 border-t border-slate-800 bg-cyber-800/60 scrollbar-none">
+      <button onclick="switchTab('scanner')" class="nav-tab-mobile text-xs py-1.5 px-3 rounded-md bg-slate-800 whitespace-nowrap">Scanner</button>
+      <button onclick="switchTab('batch')" class="nav-tab-mobile text-xs py-1.5 px-3 rounded-md bg-slate-800 whitespace-nowrap">Batch Scan</button>
+      <button onclick="switchTab('metrics')" class="nav-tab-mobile text-xs py-1.5 px-3 rounded-md bg-slate-800 whitespace-nowrap">ML Metrics</button>
+      <button onclick="switchTab('history')" class="nav-tab-mobile text-xs py-1.5 px-3 rounded-md bg-slate-800 whitespace-nowrap">History</button>
+      <button onclick="switchTab('about')" class="nav-tab-mobile text-xs py-1.5 px-3 rounded-md bg-slate-800 whitespace-nowrap">About & HTTPS</button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- ==================== TAB 1: SINGLE URL SCANNER ==================== -->
+    <section id="tab-scanner" class="tab-content space-y-8">
+      <!-- Hero Banner -->
+      <div class="text-center max-w-3xl mx-auto pt-4 pb-2">
+        <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-3">
+          AI-Powered <span class="bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-400 bg-clip-text text-transparent">Phishing Detection</span>
+        </h1>
+        <p class="text-slate-400 text-sm sm:text-base">
+          Analyze web URLs using Random Forest Machine Learning and Explainable AI (XAI) without visiting hazardous pages.
+        </p>
+      </div>
+
+      <!-- Search Box Card -->
+      <div class="max-w-3xl mx-auto glass-card p-4 sm:p-6 rounded-2xl shadow-2xl relative">
+        <form id="scan-form" onsubmit="handleScan(event)" class="space-y-4">
+          <div class="relative flex items-center">
+            <span class="absolute left-4 text-slate-500 text-lg">
+              <i class="fa-solid fa-link"></i>
+            </span>
+            <input
+              type="text"
+              id="url-input"
+              required
+              placeholder="Enter URL to check (e.g., https://paypa1-security-verification.com/login)"
+              class="w-full pl-12 pr-28 py-4 rounded-xl bg-slate-900/90 border border-slate-700 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 text-white placeholder-slate-500 outline-none text-sm sm:text-base font-mono transition"
+            />
+            <button
+              type="submit"
+              id="scan-button"
+              class="absolute right-2.5 px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-semibold text-sm transition shadow-md shadow-cyan-500/20 flex items-center gap-2"
+            >
+              <span>Scan URL</span>
+              <i class="fa-solid fa-arrow-right text-xs"></i>
+            </button>
+          </div>
+        </form>
+
+        <!-- Quick Demo Presets -->
+        <div class="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+          <span class="font-medium text-slate-500">Quick Test Samples:</span>
+          <button onclick="setSample('https://paypa1-security-verification.com/webscr/login')" class="sample-pill">
+            <i class="fa-solid fa-triangle-exclamation text-rose-400"></i> HTTPS Typosquatting
+          </button>
+          <button onclick="setSample('http://192.168.1.105/bank/login.php')" class="sample-pill">
+            <i class="fa-solid fa-network-wired text-rose-400"></i> IP Hostname
+          </button>
+          <button onclick="setSample('https://paypal-support-login.firebaseapp.com')" class="sample-pill">
+            <i class="fa-solid fa-cloud text-amber-400"></i> Free Cloud Host Abuse
+          </button>
+          <button onclick="setSample('https://www.google.com/search?q=cybersecurity')" class="sample-pill">
+            <i class="fa-solid fa-circle-check text-emerald-400"></i> Legitimate Safe URL
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div id="scan-loading" class="hidden max-w-3xl mx-auto text-center py-12">
+        <div class="inline-block relative">
+          <div class="h-16 w-16 rounded-full border-4 border-slate-800 border-t-cyan-400 animate-spin"></div>
+          <i class="fa-solid fa-shield-cat absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-cyan-400"></i>
+        </div>
+        <p class="mt-4 text-slate-300 font-medium">Extracting 25 lexical features & running ML inference...</p>
+        <p class="text-xs text-slate-500 mt-1">Analyzing character entropy, protocol mismatch, typosquatting & subdomains</p>
+      </div>
+
+      <!-- Scan Result Container -->
+      <div id="scan-result" class="hidden max-w-4xl mx-auto space-y-6">
+        <!-- Top Verdict Card -->
+        <div id="verdict-banner" class="glass-card p-6 sm:p-8 rounded-2xl border-l-8 transition-all">
+          <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div class="space-y-2">
+              <div class="flex items-center gap-3">
+                <span id="verdict-badge" class="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider">VERDICT</span>
+                <span id="risk-level-text" class="text-xs uppercase tracking-wider text-slate-400 font-mono">RISK LEVEL</span>
+              </div>
+              <h2 id="verdict-title" class="text-2xl sm:text-3xl font-extrabold text-white">Detection Result</h2>
+              <p id="target-url-display" class="text-xs sm:text-sm font-mono text-cyan-400 break-all"></p>
+            </div>
+
+            <!-- Risk Score Radial Gauge -->
+            <div class="flex flex-col items-center justify-center p-4 rounded-xl bg-slate-900/60 border border-slate-800 min-w-[150px]">
+              <span class="text-xs text-slate-400 uppercase tracking-widest font-semibold mb-1">Threat Probability</span>
+              <div class="relative flex items-center justify-center">
+                <span id="threat-score-number" class="text-3xl sm:text-4xl font-extrabold text-white">0%</span>
+              </div>
+              <span id="risk-category-badge" class="mt-1 text-xs font-semibold px-2.5 py-0.5 rounded-full">Low Risk</span>
+            </div>
+          </div>
+
+          <!-- HTTPS Advisory Alert Box (Directly addressing HTTPS weak points) -->
+          <div id="https-advisory-box" class="mt-6 p-4 rounded-xl border flex items-start gap-3.5 text-xs sm:text-sm">
+            <i id="https-icon" class="fa-solid fa-lock text-lg mt-0.5"></i>
+            <div>
+              <div class="font-bold flex items-center gap-2">
+                <span id="https-status-title">HTTPS Protocol Evaluation</span>
+                <span id="https-status-badge" class="px-2 py-0.5 rounded text-[10px] uppercase font-bold">Safe</span>
+              </div>
+              <p id="https-status-note" class="mt-1 text-slate-300 leading-relaxed"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2-Column Details: Explainable AI Findings & Extracted Features -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- XAI Security Findings -->
+          <div class="glass-card p-6 rounded-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-microchip text-cyan-400"></i> Explainable AI (XAI) Reasons
+              </h3>
+              <span class="text-xs text-slate-400">Why was this flagged?</span>
+            </div>
+            <div id="findings-list" class="space-y-3">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Actionable Recommendations & Extracted Metrics -->
+          <div class="space-y-6">
+            <!-- Recommendations Card -->
+            <div class="glass-card p-6 rounded-2xl space-y-3">
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-user-shield text-emerald-400"></i> Security Recommendations
+              </h3>
+              <ul id="recommendations-list" class="space-y-2 text-xs sm:text-sm text-slate-300">
+                <!-- Dynamically populated -->
+              </ul>
+            </div>
+
+            <!-- Feature Snapshot Card -->
+            <div class="glass-card p-6 rounded-2xl space-y-3">
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-sliders text-blue-400"></i> Key Extracted Features
+              </h3>
+              <div id="feature-snapshot" class="grid grid-cols-2 gap-2 text-xs">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: BATCH / EMAIL SCANNER ==================== -->
+    <section id="tab-batch" class="tab-content hidden space-y-6">
+      <div class="text-center max-w-3xl mx-auto">
+        <h2 class="text-2xl sm:text-4xl font-extrabold text-white">Batch & Email Link Triage</h2>
+        <p class="text-slate-400 text-sm mt-2">
+          Paste full email text, phishing lures, or a list of multiple URLs to bulk-detect and categorize every link.
+        </p>
+      </div>
+
+      <div class="max-w-3xl mx-auto glass-card p-6 rounded-2xl space-y-4">
+        <textarea
+          id="batch-input"
+          rows="6"
+          placeholder="Paste raw email contents or multiple URLs here...
+Example:
+Please review your account: https://paypa1-security-verification.com/login
+Official documentation: https://www.google.com
+Free cloud form: https://paypal-support-login.firebaseapp.com"
+          class="w-full p-4 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-xs sm:text-sm outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-500"
+        ></textarea>
+        <div class="flex justify-between items-center">
+          <span class="text-xs text-slate-500">Extracts and scans up to 50 URLs in one click.</span>
+          <button
+            onclick="handleBatchScan()"
+            id="batch-scan-btn"
+            class="px-5 py-2.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm transition shadow-lg shadow-cyan-500/20"
+          >
+            <i class="fa-solid fa-magnifying-glass-chart mr-1"></i> Scan All Links
+          </button>
+        </div>
+      </div>
+
+      <!-- Batch Results Container -->
+      <div id="batch-results-container" class="hidden max-w-5xl mx-auto space-y-4">
+        <!-- Summary Counters -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div class="glass-card p-4 rounded-xl text-center">
+            <span class="text-xs text-slate-400 uppercase font-semibold">Total URLs</span>
+            <div id="batch-total" class="text-2xl font-bold text-white mt-1">0</div>
+          </div>
+          <div class="glass-card p-4 rounded-xl text-center border-l-4 border-rose-500">
+            <span class="text-xs text-rose-400 uppercase font-semibold">Phishing</span>
+            <div id="batch-phishing" class="text-2xl font-bold text-rose-400 mt-1">0</div>
+          </div>
+          <div class="glass-card p-4 rounded-xl text-center border-l-4 border-amber-500">
+            <span class="text-xs text-amber-400 uppercase font-semibold">Suspicious</span>
+            <div id="batch-suspicious" class="text-2xl font-bold text-amber-400 mt-1">0</div>
+          </div>
+          <div class="glass-card p-4 rounded-xl text-center border-l-4 border-emerald-500">
+            <span class="text-xs text-emerald-400 uppercase font-semibold">Legitimate</span>
+            <div id="batch-legitimate" class="text-2xl font-bold text-emerald-400 mt-1">0</div>
+          </div>
+        </div>
+
+        <!-- Table of Results -->
+        <div class="glass-card rounded-2xl overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm">
+              <thead class="bg-slate-900/80 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-800">
+                <tr>
+                  <th class="py-3 px-4">URL</th>
+                  <th class="py-3 px-4">Verdict</th>
+                  <th class="py-3 px-4">Threat Prob.</th>
+                  <th class="py-3 px-4">HTTPS Status</th>
+                </tr>
+              </thead>
+              <tbody id="batch-table-body" class="divide-y divide-slate-800/60 font-mono">
+                <!-- Dynamically filled -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: ML VIVA DASHBOARD ==================== -->
+    <section id="tab-metrics" class="tab-content hidden space-y-8">
+      <div class="text-center max-w-3xl mx-auto">
+        <span class="text-xs font-bold text-cyan-400 uppercase tracking-widest px-2.5 py-1 rounded bg-cyan-950 border border-cyan-800">Academic Project Section</span>
+        <h2 class="text-2xl sm:text-4xl font-extrabold text-white mt-2">Machine Learning & Evaluation Metrics</h2>
+        <p class="text-slate-400 text-sm mt-2">
+          Model benchmarks, Confusion Matrix, ROC-AUC, and Feature Importances for 5th-Semester Viva Defense.
+        </p>
+      </div>
+
+      <!-- Model Comparison Cards -->
+      <div id="model-comparison-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Dynamically filled with Random Forest, Decision Tree, Logistic Regression -->
+      </div>
+
+      <!-- Charts Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Feature Importances Chart -->
+        <div class="glass-card p-6 rounded-2xl space-y-4">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-chart-bar text-cyan-400"></i> Top Random Forest Feature Importances
+          </h3>
+          <p class="text-xs text-slate-400">Weights assigned by the Gini impurity reduction across 100 decision trees.</p>
+          <div class="h-64 sm:h-80">
+            <canvas id="features-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- ROC Curve Chart -->
+        <div class="glass-card p-6 rounded-2xl space-y-4">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-wave-square text-indigo-400"></i> ROC-AUC Comparison
+          </h3>
+          <p class="text-xs text-slate-400">Receiver Operating Characteristic Curve measuring True vs False Positive Rates.</p>
+          <div class="h-64 sm:h-80">
+            <canvas id="roc-chart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: SCAN HISTORY ==================== -->
+    <section id="tab-history" class="tab-content hidden space-y-6">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Scan History & Audit Log</h2>
+          <p class="text-slate-400 text-xs sm:text-sm">Persistent records stored locally in SQLite database.</p>
+        </div>
+        <button
+          onclick="handleClearHistory()"
+          class="px-4 py-2 rounded-lg text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition flex items-center gap-1.5"
+        >
+          <i class="fa-solid fa-trash-can"></i> Clear History
+        </button>
+      </div>
+
+      <div class="glass-card rounded-2xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs sm:text-sm">
+            <thead class="bg-slate-900/80 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-800">
+              <tr>
+                <th class="py-3.5 px-4">Timestamp</th>
+                <th class="py-3.5 px-4">URL</th>
+                <th class="py-3.5 px-4">Verdict</th>
+                <th class="py-3.5 px-4">Risk %</th>
+                <th class="py-3.5 px-4">HTTPS State</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body" class="divide-y divide-slate-800/60 font-mono">
+              <tr>
+                <td colspan="5" class="py-8 text-center text-slate-500">No scans recorded yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 5: ABOUT & HTTPS ADVISORY ==================== -->
+    <section id="tab-about" class="tab-content hidden space-y-8 max-w-4xl mx-auto">
+      <div class="text-center">
+        <h2 class="text-2xl sm:text-4xl font-extrabold text-white">About the Project Architecture</h2>
+        <p class="text-slate-400 text-sm mt-2">5th-Semester Computer Science & Engineering Mini Project</p>
+      </div>
+
+      <!-- Critical Viva Insight: The HTTPS Dilemma -->
+      <div class="glass-card p-6 sm:p-8 rounded-2xl border-l-4 border-amber-400 space-y-3">
+        <div class="flex items-center gap-2.5 text-amber-400 font-bold text-lg">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <h3>Key Defense Point: The HTTPS Phishing Fallacy</h3>
+        </div>
+        <p class="text-slate-300 text-sm leading-relaxed">
+          In legacy phishing detection literature, the presence of <code class="text-cyan-400">HTTPS</code> was considered a strong indicator of legitimacy. 
+          However, modern threat intelligence shows that <strong>over 80% of phishing websites now use valid HTTPS</strong> via free, automated Certificate Authorities (Let's Encrypt, Cloudflare, cPanel).
+        </p>
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 text-xs sm:text-sm text-slate-300 space-y-2">
+          <div class="flex items-start gap-2">
+            <span class="text-emerald-400 font-bold">Confidentiality ≠ Authenticity:</span>
+            <span>HTTPS guarantees encryption against local eavesdroppers. It <em>does not</em> verify that the website owner is benevolent. A criminal can securely encrypt the transmission of stolen credentials.</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="text-cyan-400 font-bold">Our Solution:</span>
+            <span>We engineered specialized features: <em>HTTPS token spoofing detection</em>, <em>protocol-hostname mismatch</em>, <em>HTTPS interaction with free cloud hosts</em>, and <em>Shannon entropy analysis</em>.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Project Modules Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="glass-card p-6 rounded-2xl space-y-2">
+          <div class="h-8 w-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold text-sm">1</div>
+          <h4 class="font-bold text-white">Feature Extraction Engine</h4>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Extracts 25 structural and lexical parameters without downloading remote HTML or executing malicious JavaScript, keeping execution safe and lightweight.
+          </p>
+        </div>
+
+        <div class="glass-card p-6 rounded-2xl space-y-2">
+          <div class="h-8 w-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold text-sm">2</div>
+          <h4 class="font-bold text-white">Machine Learning (Random Forest)</h4>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Ensemble classifier combining 100 decision trees to minimize variance and prevent overfitting on tabular URL patterns, outperforming single decision trees and logistic regression.
+          </p>
+        </div>
+
+        <div class="glass-card p-6 rounded-2xl space-y-2">
+          <div class="h-8 w-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center font-bold text-sm">3</div>
+          <h4 class="font-bold text-white">Explainable AI (XAI)</h4>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Eliminates the black-box dilemma by decomposing predictions into human-readable flags (e.g., brand typosquatting, DGA entropy, subdomain stacking).
+          </p>
+        </div>
+
+        <div class="glass-card p-6 rounded-2xl space-y-2">
+          <div class="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-sm">4</div>
+          <h4 class="font-bold text-white">Full-Stack & Extension Delivery</h4>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Delivered via FastAPI backend, responsive mobile-friendly PWA, and a companion Chrome/Brave Manifest V3 browser extension for live tab inspection.
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-16 border-t border-slate-800/80 py-6 text-center text-xs text-slate-500">
+    <p>AI-Based Phishing URL and Malicious Website Detection System • CSE 5th Semester Mini Project</p>
+    <p class="mt-1">Built with Python, Scikit-learn, FastAPI, Tailwind CSS & Explainable AI</p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
