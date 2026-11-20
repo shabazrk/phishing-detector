@@ -1,25 +1,25 @@
 {
   "dataset_summary": {
-    "total_samples": 113,
-    "training_samples": 84,
-    "testing_samples": 29,
+    "total_samples": 119,
+    "training_samples": 89,
+    "testing_samples": 30,
     "feature_count": 26
   },
   "model_comparison": {
     "Random Forest": {
-      "accuracy": 0.931,
+      "accuracy": 0.9667,
       "precision": 1.0,
-      "recall": 0.8462,
-      "f1_score": 0.9167,
+      "recall": 0.9231,
+      "f1_score": 0.96,
       "roc_auc": 1.0,
       "confusion_matrix": [
         [
-          16,
+          17,
           0
         ],
         [
-          2,
-          11
+          1,
+          12
         ]
       ],
       "roc_curve": [
@@ -29,26 +29,26 @@
         },
         {
           "fpr": 0.0,
-          "tpr": 0.5385
+          "tpr": 0.1538
+        },
+        {
+          "fpr": 0.0,
+          "tpr": 0.3077
         },
         {
           "fpr": 0.0,
           "tpr": 1.0
         },
         {
-          "fpr": 0.125,
+          "fpr": 0.2353,
           "tpr": 1.0
         },
         {
-          "fpr": 0.25,
+          "fpr": 0.4706,
           "tpr": 1.0
         },
         {
-          "fpr": 0.3125,
-          "tpr": 1.0
-        },
-        {
-          "fpr": 0.4375,
+          "fpr": 0.5294,
           "tpr": 1.0
         },
         {
@@ -58,15 +58,15 @@
       ]
     },
     "Decision Tree": {
-      "accuracy": 0.8966,
-      "precision": 0.9167,
+      "accuracy": 0.9333,
+      "precision": 1.0,
       "recall": 0.8462,
-      "f1_score": 0.88,
-      "roc_auc": 0.8918,
+      "f1_score": 0.9167,
+      "roc_auc": 0.9231,
       "confusion_matrix": [
         [
-          15,
-          1
+          17,
+          0
         ],
         [
           2,
@@ -79,7 +79,7 @@
           "tpr": 0.0
         },
         {
-          "fpr": 0.0625,
+          "fpr": 0.0,
           "tpr": 0.8462
         },
         {
@@ -89,19 +89,19 @@
       ]
     },
     "Logistic Regression": {
-      "accuracy": 0.8966,
+      "accuracy": 0.9667,
       "precision": 1.0,
-      "recall": 0.7692,
-      "f1_score": 0.8696,
-      "roc_auc": 0.9808,
+      "recall": 0.9231,
+      "f1_score": 0.96,
+      "roc_auc": 1.0,
       "confusion_matrix": [
         [
-          16,
+          17,
           0
         ],
         [
-          3,
-          10
+          1,
+          12
         ]
       ],
       "roc_curve": [
@@ -115,14 +115,6 @@
         },
         {
           "fpr": 0.0,
-          "tpr": 0.9231
-        },
-        {
-          "fpr": 0.25,
-          "tpr": 0.9231
-        },
-        {
-          "fpr": 0.25,
           "tpr": 1.0
         },
         {
@@ -134,104 +126,104 @@
   },
   "feature_importances": [
     {
-      "feature": "domain_length",
-      "importance": 0.2233
-    },
-    {
       "feature": "suspicious_keyword_count",
-      "importance": 0.2129
+      "importance": 0.289
     },
     {
       "feature": "domain_shannon_entropy",
-      "importance": 0.1774
+      "importance": 0.1632
+    },
+    {
+      "feature": "domain_length",
+      "importance": 0.1328
     },
     {
       "feature": "count_hyphens",
-      "importance": 0.133
+      "importance": 0.0785
     },
     {
       "feature": "https_with_suspicious_features",
-      "importance": 0.0446
-    },
-    {
-      "feature": "has_ip_address",
-      "importance": 0.033
+      "importance": 0.0733
     },
     {
       "feature": "url_length",
-      "importance": 0.03
+      "importance": 0.0551
     },
     {
       "feature": "count_subdomains",
-      "importance": 0.0285
-    },
-    {
-      "feature": "digit_ratio",
-      "importance": 0.0222
-    },
-    {
-      "feature": "is_https",
-      "importance": 0.0215
-    },
-    {
-      "feature": "typosquatting_risk",
-      "importance": 0.0152
-    },
-    {
-      "feature": "path_length",
-      "importance": 0.0144
-    },
-    {
-      "feature": "count_slashes",
-      "importance": 0.0126
-    },
-    {
-      "feature": "count_dots",
-      "importance": 0.0089
+      "importance": 0.0308
     },
     {
       "feature": "high_risk_tld",
-      "importance": 0.0084
+      "importance": 0.0249
+    },
+    {
+      "feature": "is_https",
+      "importance": 0.0244
+    },
+    {
+      "feature": "path_length",
+      "importance": 0.0239
+    },
+    {
+      "feature": "has_ip_address",
+      "importance": 0.0226
+    },
+    {
+      "feature": "count_slashes",
+      "importance": 0.0182
+    },
+    {
+      "feature": "typosquatting_risk",
+      "importance": 0.0172
+    },
+    {
+      "feature": "digit_ratio",
+      "importance": 0.0142
+    },
+    {
+      "feature": "count_dots",
+      "importance": 0.0141
     },
     {
       "feature": "has_non_standard_port",
-      "importance": 0.0033
-    },
-    {
-      "feature": "count_underscores",
-      "importance": 0.0024
-    },
-    {
-      "feature": "free_cloud_host",
-      "importance": 0.0023
-    },
-    {
-      "feature": "https_token_in_hostname",
-      "importance": 0.0017
+      "importance": 0.007
     },
     {
       "feature": "count_equal_signs",
-      "importance": 0.0013
-    },
-    {
-      "feature": "query_length",
-      "importance": 0.0012
-    },
-    {
-      "feature": "count_question_marks",
-      "importance": 0.0012
+      "importance": 0.0018
     },
     {
       "feature": "https_http_protocol_mismatch",
-      "importance": 0.0009
+      "importance": 0.0018
+    },
+    {
+      "feature": "query_length",
+      "importance": 0.0015
+    },
+    {
+      "feature": "https_token_in_hostname",
+      "importance": 0.0012
+    },
+    {
+      "feature": "free_cloud_host",
+      "importance": 0.0012
     },
     {
       "feature": "count_at_signs",
-      "importance": 0.0
+      "importance": 0.0011
+    },
+    {
+      "feature": "count_question_marks",
+      "importance": 0.001
+    },
+    {
+      "feature": "count_underscores",
+      "importance": 0.0008
     },
     {
       "feature": "has_shortener",
-      "importance": 0.0
+      "importance": 0.0004
     },
     {
       "feature": "double_slash_in_path",

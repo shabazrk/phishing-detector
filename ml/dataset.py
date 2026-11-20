@@ -59,6 +59,14 @@ LEGITIMATE_SAMPLES: List[str] = [
     "https://medium.com/@user/cybersecurity-overview-12345",
     "https://www.reddit.com/r/MachineLearning/",
     
+    # Legitimate Developer & Student Web Apps on Cloud/PaaS
+    "https://fastapi-student-demo.onrender.com",
+    "https://phishing-detector-project.onrender.com",
+    "https://react-portfolio-app.vercel.app",
+    "https://documentation-guides.netlify.app",
+    "https://developer-profile.github.io/portfolio",
+    "https://ai-research-demo.onrender.com/dashboard",
+    
     # Social & Media
     "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     "https://www.linkedin.com/in/profile",

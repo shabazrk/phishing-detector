@@ -23,11 +23,10 @@ HIGH_RISK_TLDS = {
     "fit", "surf", "cn", "ru", "icu", "club", "live", "vip", "link"
 }
 
-# Free cloud hosting / PaaS domains abused with automated SSL
+# Free cloud hosting / PaaS domains often targeted for disposable credential phishing
 FREE_CLOUD_DOMAINS = [
-    "firebaseapp.com", "web.app", "workers.dev", "pages.dev", "vercel.app",
-    "glitch.me", "netlify.app", "github.io", "000webhostapp.com", "render.com",
-    "azurewebsites.net", "herokuapp.com", "s3.amazonaws.com"
+    "firebaseapp.com", "web.app", "workers.dev", "pages.dev",
+    "glitch.me", "000webhostapp.com"
 ]
 
 # Common URL shortening domains
@@ -194,8 +193,8 @@ def extract_features(raw_url: str) -> Dict[str, Any]:
     tld = host_parts[-1] if host_parts else ""
     high_risk_tld = 1 if tld in HIGH_RISK_TLDS else 0
 
-    # 11. Free Cloud Hosting / PaaS provider abuse
-    free_cloud_host = 1 if any(hostname.endswith(domain) for domain in FREE_CLOUD_DOMAINS) else 0
+    # 11. Free Cloud Hosting / PaaS provider check (exact domain or subdomain)
+    free_cloud_host = 1 if any(hostname == domain or hostname.endswith("." + domain) for domain in FREE_CLOUD_DOMAINS) else 0
 
     # 12. Typosquatting / Brand Imitation Risk
     typosquatting_risk = check_typosquatting(hostname)
@@ -204,12 +203,12 @@ def extract_features(raw_url: str) -> Dict[str, Any]:
     double_slash_in_path = 1 if "//" in path else 0
 
     # 14. HTTPS with Suspicious Indicators (Interaction Feature)
-    # Catches modern HTTPS phishing: valid SSL used with free cloud host or suspicious keywords
+    # Catches modern HTTPS phishing: valid SSL used with free cloud host AND keywords, or typosquatting
     https_with_suspicious_features = 1 if (
         is_https == 1 and (
-            free_cloud_host == 1 or 
-            high_risk_tld == 1 or 
-            suspicious_keyword_count >= 2 or 
+            (free_cloud_host == 1 and (suspicious_keyword_count >= 1 or typosquatting_risk == 1)) or
+            (high_risk_tld == 1 and suspicious_keyword_count >= 1) or
+            suspicious_keyword_count >= 2 or
             typosquatting_risk == 1
         )
     ) else 0

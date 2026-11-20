@@ -90,12 +90,12 @@ def explain_url(raw_url: str, features: Dict[str, Any], phishing_prob: float) ->
             "description": "The hostname is a raw IP address (e.g. http://192.168.x.x). Legitimate web services use registered domain names. This is a common evasion technique."
         })
 
-    # 4. Free Cloud / Subdomain Provider Abuse
-    if free_cloud:
+    # 4. Free Cloud / Subdomain Provider Abuse (when paired with credential keywords or typosquatting)
+    if free_cloud and (features.get("suspicious_keyword_count", 0) >= 1 or features.get("typosquatting_risk", 0) == 1):
         findings.append({
             "severity": "HIGH",
-            "title": "Hosted on Free Cloud / PaaS Platform",
-            "description": "Site is hosted on a free hosting platform (Firebase, Workers, Vercel, Glitch). Cybercriminals frequently abuse free tiers to host disposable phishing pages."
+            "title": "Credential Harvest Pattern on Free Cloud Platform",
+            "description": "Site is hosted on a free cloud platform (Firebase, Workers, Glitch) while carrying sensitive authentication keywords or brand imitations."
         })
 
     # 5. High-Risk / Disposable TLD
@@ -126,7 +126,7 @@ def explain_url(raw_url: str, features: Dict[str, Any], phishing_prob: float) ->
 
     # 8. High Shannon Entropy (Random DGA Domain)
     entropy = features.get("domain_shannon_entropy", 0.0)
-    if entropy >= 3.8:
+    if entropy >= 4.25:
         findings.append({
             "severity": "HIGH",
             "title": f"High Character Entropy ({entropy:.2f})",
