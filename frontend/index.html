@@ -132,6 +132,13 @@
               <i class="fa-solid fa-arrow-right text-xs"></i>
             </button>
           </div>
+          <div class="flex items-center justify-between text-xs text-slate-400 px-1">
+            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" id="deep-scan-toggle" checked class="accent-cyan-500 h-4 w-4 rounded" />
+              <span class="text-slate-300 font-medium">Deep Inspection (Track Redirects, SSL Cert &amp; Live Website Content)</span>
+            </label>
+            <span class="hidden sm:inline text-slate-500">SSRF-safe • No JS execution</span>
+          </div>
         </form>
 
         <!-- Quick Demo Presets -->
@@ -234,6 +241,42 @@
               <div id="feature-snapshot" class="grid grid-cols-2 gap-2 text-xs">
                 <!-- Dynamically populated -->
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Deep Inspection Row: Redirect Chain & Website Content -->
+        <div id="deep-inspection-row" class="hidden grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Redirect Chain & Safety Card -->
+          <div class="glass-card p-6 rounded-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-route text-purple-400"></i> Redirect Chain &amp; Safety
+              </h3>
+              <span id="redirect-safety-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase">NO REDIRECTS</span>
+            </div>
+            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/70 border border-slate-800 text-xs">
+              <div>
+                <span class="text-slate-400 block">Redirect Safety Score</span>
+                <span id="redirect-summary-text" class="text-slate-300 mt-0.5 block"></span>
+              </div>
+              <span id="redirect-safety-score" class="text-2xl font-extrabold text-cyan-400 ml-4">100%</span>
+            </div>
+            <div id="redirect-hops-list" class="space-y-2 text-xs font-mono">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Website Content & DOM Features Card -->
+          <div class="glass-card p-6 rounded-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-code text-cyan-400"></i> Website Content &amp; DOM Analysis
+              </h3>
+              <span id="content-status-badge" class="text-xs text-slate-400">HTML Inspected</span>
+            </div>
+            <div id="content-details-box" class="space-y-2.5 text-xs">
+              <!-- Dynamically populated -->
             </div>
           </div>
         </div>

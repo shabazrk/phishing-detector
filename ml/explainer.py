@@ -4,10 +4,16 @@ Converts extracted mathematical and structural features into human-readable,
 actionable security insights, addressing the HTTPS fallacy and technical flags.
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 
-def explain_url(raw_url: str, features: Dict[str, Any], phishing_prob: float) -> Dict[str, Any]:
+def explain_url(
+    raw_url: str,
+    features: Dict[str, Any],
+    phishing_prob: float,
+    redirect_analysis: Optional[Dict[str, Any]] = None,
+    content_analysis: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     """
     Generates an Explainable AI (XAI) report for a given URL and its ML prediction.
     """
@@ -147,6 +153,74 @@ def explain_url(raw_url: str, features: Dict[str, Any], phishing_prob: float) ->
             "title": "Double Slash in Path",
             "description": "Detected '//' in the URL path, commonly used in open redirect exploits."
         })
+
+    # 10. Redirect Chain Findings
+    if redirect_analysis:
+        if redirect_analysis.get("https_downgrade"):
+            findings.append({
+                "severity": "CRITICAL",
+                "title": "HTTPS-to-HTTP Security Downgrade Redirect",
+                "description": "The URL redirects from an encrypted HTTPS address to an unencrypted HTTP destination."
+            })
+        if redirect_analysis.get("cross_domain_redirect"):
+            findings.append({
+                "severity": "HIGH",
+                "title": "Cross-Domain Redirect Detected",
+                "description": f"The link redirects across different domains to: {redirect_analysis.get('final_url')}"
+            })
+        if redirect_analysis.get("meta_refresh_url"):
+            findings.append({
+                "severity": "HIGH",
+                "title": "HTML Meta-Refresh Redirect Found",
+                "description": f"The webpage contains a hidden HTML meta-refresh tag redirecting to: {redirect_analysis.get('meta_refresh_url')}"
+            })
+
+    # 11. Live Website Content & DOM Findings
+    if content_analysis and content_analysis.get("available"):
+        if content_analysis.get("external_form_actions"):
+            findings.append({
+                "severity": "CRITICAL",
+                "title": "Form Submits Credentials to External Domain",
+                "description": "An HTML <form> on this page sends user input to a completely different external domain—a primary indicator of credential harvesting."
+            })
+        if content_analysis.get("insecure_form_actions"):
+            findings.append({
+                "severity": "HIGH",
+                "title": "Form Submits Over Unencrypted HTTP",
+                "description": "A form on this page transmits data over plain-text HTTP."
+            })
+        if content_analysis.get("title_brand_mismatch"):
+            brand = content_analysis.get("matched_title_brand", "a known brand")
+            findings.append({
+                "severity": "CRITICAL",
+                "title": f"Page Title Impersonates '{brand.title()}'",
+                "description": f"The webpage <title> mentions '{brand}', but the hosting domain does not belong to {brand}."
+            })
+        if content_analysis.get("hidden_iframe_count", 0) > 0:
+            findings.append({
+                "severity": "HIGH",
+                "title": f"Hidden Iframe(s) Detected ({content_analysis['hidden_iframe_count']})",
+                "description": "The page embeds zero-size or hidden <iframe> elements, often used for clickjacking or drive-by loading."
+            })
+        if content_analysis.get("favicon_external"):
+            findings.append({
+                "severity": "MEDIUM",
+                "title": "External Favicon Hotlinking",
+                "description": "The site loads its browser tab icon from a different domain, commonly seen when cloning legitimate login pages."
+            })
+        if content_analysis.get("right_click_disabled"):
+            findings.append({
+                "severity": "MEDIUM",
+                "title": "Right-Click / Context Menu Disabled",
+                "description": "The page disables right-click inspection, a technique frequently used by phishing kits to hide source code."
+            })
+        ssl_cert = content_analysis.get("ssl_certificate", {})
+        if ssl_cert.get("available") and not ssl_cert.get("valid", True):
+            findings.append({
+                "severity": "CRITICAL",
+                "title": "Invalid or Self-Signed SSL Certificate",
+                "description": "The HTTPS certificate failed verification (self-signed, expired, or hostname mismatch)."
+            })
 
     # If completely safe
     if not findings and risk_percentage < 35:

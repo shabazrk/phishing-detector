@@ -43,11 +43,14 @@ async function handleScan(event) {
   resultEl.classList.add("hidden");
   scanBtn.disabled = true;
 
+  const deepToggle = document.getElementById("deep-scan-toggle");
+  const deepScan = deepToggle ? deepToggle.checked : true;
+
   try {
     const res = await fetch("/api/scan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url })
+      body: JSON.stringify({ url, deep_scan: deepScan })
     });
 
     if (!res.ok) {
@@ -205,6 +208,93 @@ function renderScanResult(data) {
     `;
     featSnapshot.appendChild(card);
   });
+
+  // Deep Inspection: Redirect Chain & Website Content
+  const deepRow = document.getElementById("deep-inspection-row");
+  if (deepRow) {
+    if (data.deep_scan && data.deep_scan.enabled && data.redirect_analysis) {
+      deepRow.classList.remove("hidden");
+      const ra = data.redirect_analysis;
+      const rBadge = document.getElementById("redirect-safety-badge");
+      const rScore = document.getElementById("redirect-safety-score");
+      const rSummary = document.getElementById("redirect-summary-text");
+      const rHops = document.getElementById("redirect-hops-list");
+
+      rBadge.textContent = ra.safety_verdict;
+      rScore.textContent = `${ra.safety_score}%`;
+      rSummary.textContent = ra.summary;
+
+      if (ra.safety_verdict === "DANGEROUS REDIRECT") {
+        rBadge.className = "px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase bg-rose-500/20 text-rose-400 border border-rose-500/30";
+        rScore.className = "text-2xl font-extrabold text-rose-400 ml-4";
+      } else if (ra.safety_verdict === "SUSPICIOUS REDIRECT") {
+        rBadge.className = "px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase bg-amber-500/20 text-amber-400 border border-amber-500/30";
+        rScore.className = "text-2xl font-extrabold text-amber-400 ml-4";
+      } else {
+        rBadge.className = "px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+        rScore.className = "text-2xl font-extrabold text-emerald-400 ml-4";
+      }
+
+      rHops.innerHTML = "";
+      if (ra.hops && ra.hops.length > 0) {
+        ra.hops.forEach((hop) => {
+          const hopEl = document.createElement("div");
+          hopEl.className = "p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 space-y-1";
+          const tags = [];
+          if (hop.cross_domain) tags.push('<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px]">Cross-Domain</span>');
+          if (hop.https_downgrade) tags.push('<span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 text-[10px]">HTTPS Downgrade</span>');
+          hopEl.innerHTML = `
+            <div class="flex items-center justify-between">
+              <span class="text-cyan-400 font-bold">Hop #${hop.step} (HTTP ${hop.status_code})</span>
+              <div class="flex gap-1">${tags.join("")}</div>
+            </div>
+            <div class="text-slate-300 break-all">→ ${hop.to_url}</div>
+          `;
+          rHops.appendChild(hopEl);
+        });
+      } else {
+        rHops.innerHTML = `<div class="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 text-slate-400">Final Destination: <span class="text-cyan-400 break-all">${ra.final_url}</span></div>`;
+      }
+
+      // Website Content & DOM Analysis
+      const ca = data.content_analysis || {};
+      const cBadge = document.getElementById("content-status-badge");
+      const cBox = document.getElementById("content-details-box");
+      cBox.innerHTML = "";
+
+      if (ca.available) {
+        cBadge.textContent = `HTTP ${ca.http_status || 200} • HTML Inspected`;
+        const sslText = ca.ssl_certificate && ca.ssl_certificate.available
+          ? `${ca.ssl_certificate.issuer} (${ca.ssl_certificate.valid ? "Valid" : "Invalid"})`
+          : "No HTTPS / N/A";
+
+        const rows = [
+          { label: "Page Title", val: ca.page_title, warn: ca.title_brand_mismatch },
+          { label: "SSL Certificate", val: sslText, warn: ca.ssl_certificate && ca.ssl_certificate.available && !ca.ssl_certificate.valid },
+          { label: "Forms / Password Inputs", val: `${ca.form_count} form(s) • Password field: ${ca.has_password_field ? "Yes" : "No"}`, warn: ca.has_password_field && data.risk_percentage >= 35 },
+          { label: "External Form Actions", val: ca.external_form_actions && ca.external_form_actions.length > 0 ? `${ca.external_form_actions.length} external target(s)` : "None", warn: ca.external_form_actions && ca.external_form_actions.length > 0 },
+          { label: "Iframes (Hidden)", val: `${ca.iframe_count} total (${ca.hidden_iframe_count} hidden)`, warn: ca.hidden_iframe_count > 0 },
+          { label: "External Link Ratio", val: `${Math.round((ca.external_link_ratio || 0) * 100)}% (${ca.external_links}/${ca.total_links})`, warn: false },
+          { label: "External Favicon / No Right-Click", val: `Favicon: ${ca.favicon_external ? "External" : "Same-origin"} • Right-Click: ${ca.right_click_disabled ? "Blocked" : "Normal"}`, warn: ca.favicon_external || ca.right_click_disabled }
+        ];
+
+        rows.forEach((r) => {
+          const rowEl = document.createElement("div");
+          rowEl.className = "p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1";
+          rowEl.innerHTML = `
+            <span class="text-slate-400">${r.label}</span>
+            <span class="font-mono font-semibold ${r.warn ? "text-rose-400" : "text-slate-200"} break-all">${r.val}</span>
+          `;
+          cBox.appendChild(rowEl);
+        });
+      } else {
+        cBadge.textContent = "Live Fetch Skipped / Offline";
+        cBox.innerHTML = `<div class="p-3 rounded-lg bg-slate-900/60 border border-slate-800 text-slate-400">${ca.reason || data.deep_scan.fetch_message || "Could not retrieve live HTML content."}</div>`;
+      }
+    } else {
+      deepRow.classList.add("hidden");
+    }
+  }
 
   resultEl.classList.remove("hidden");
   resultEl.scrollIntoView({ behavior: "smooth" });

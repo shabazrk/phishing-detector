@@ -37,21 +37,23 @@ FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "fronten
 
 class ScanRequest(BaseModel):
     url: str
+    deep_scan: bool = True
 
 
 class BatchScanRequest(BaseModel):
     urls: Optional[List[str]] = None
     raw_text: Optional[str] = None
+    deep_scan: bool = False
 
 
 @app.post("/api/scan")
 def scan_single_url(req: ScanRequest):
-    """Analyzes a single URL using Random Forest and Explainable AI."""
+    """Analyzes a single URL using Random Forest, Redirect Tracker, Content Parser, and Explainable AI."""
     url = req.url.strip()
     if not url:
         raise HTTPException(status_code=400, detail="URL cannot be empty")
 
-    result = predict_url(url)
+    result = predict_url(url, deep_scan=req.deep_scan)
     # Save to SQLite history
     save_scan(result)
     return result
@@ -87,7 +89,7 @@ def scan_batch_urls(req: BatchScanRequest):
 
     results = []
     for u in unique_urls[:50]:  # Limit to 50 for safety
-        res = predict_url(u)
+        res = predict_url(u, deep_scan=req.deep_scan)
         save_scan(res)
         results.append(res)
 

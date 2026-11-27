@@ -31,6 +31,7 @@ from sklearn.metrics import (
 from .features import extract_features, FEATURE_NAMES
 from .dataset import load_dataset
 from .explainer import explain_url
+from .content_analyzer import analyze_website_and_redirects
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "phishing_model.joblib")
 METRICS_PATH = os.path.join(os.path.dirname(__file__), "model_metrics.json")
@@ -154,23 +155,79 @@ def get_model():
     return _CACHED_MODEL
 
 
-def predict_url(raw_url: str) -> Dict[str, Any]:
+def predict_url(raw_url: str, deep_scan: bool = True) -> Dict[str, Any]:
     """
-    Classifies a single URL using the trained model and returns full XAI report.
+    Classifies a single URL using the trained model and, when deep_scan=True,
+    safely inspects HTTP redirect chains, SSL certs, and HTML DOM content.
     """
     model = get_model()
     features = extract_features(raw_url)
-    
-    # Create DataFrame with exact column names
     X = pd.DataFrame([features])
-    
-    # Predict probability for class 1 (phishing)
     prob_phishing = float(model.predict_proba(X)[0][1])
 
+    redirect_analysis = None
+    content_analysis = None
+    deep_meta = {"enabled": deep_scan, "fetched": False, "fetch_status": "disabled", "fetch_message": "Deep scan disabled"}
+
+    if deep_scan:
+        deep_data = analyze_website_and_redirects(raw_url)
+        redirect_analysis = deep_data["redirect_analysis"]
+        content_analysis = deep_data["content_analysis"]
+        deep_meta = {
+            "enabled": True,
+            "fetched": deep_data["fetched"],
+            "fetch_status": deep_data["fetch_status"],
+            "fetch_message": deep_data["fetch_message"],
+        }
+
+        # Also score the final redirected URL with the ML model
+        final_url = redirect_analysis.get("final_url") or raw_url
+        if final_url != raw_url:
+            final_features = extract_features(final_url)
+            final_prob = float(model.predict_proba(pd.DataFrame([final_features]))[0][1])
+            prob_phishing = max(prob_phishing, final_prob)
+
+        # Blend redirect & content risk signals
+        risk_boost = 0.0
+        if redirect_analysis.get("https_downgrade"):
+            risk_boost += 0.30
+        if redirect_analysis.get("cross_domain_redirect"):
+            risk_boost += 0.15
+        if redirect_analysis.get("meta_refresh_url"):
+            risk_boost += 0.20
+
+        if content_analysis.get("available"):
+            if content_analysis.get("external_form_actions"):
+                risk_boost += 0.35
+            if content_analysis.get("insecure_form_actions"):
+                risk_boost += 0.25
+            if content_analysis.get("title_brand_mismatch"):
+                risk_boost += 0.30
+            if content_analysis.get("hidden_iframe_count", 0) > 0:
+                risk_boost += 0.20
+            if content_analysis.get("favicon_external"):
+                risk_boost += 0.10
+            if content_analysis.get("right_click_disabled"):
+                risk_boost += 0.10
+            ssl_cert = content_analysis.get("ssl_certificate", {})
+            if ssl_cert.get("available") and not ssl_cert.get("valid", True):
+                risk_boost += 0.30
+
+        prob_phishing = min(1.0, prob_phishing + risk_boost)
+
     # Generate Explainable AI breakdown
-    explanation = explain_url(raw_url, features, prob_phishing)
+    explanation = explain_url(
+        raw_url,
+        features,
+        prob_phishing,
+        redirect_analysis=redirect_analysis,
+        content_analysis=content_analysis,
+    )
     explanation["url"] = raw_url
     explanation["features"] = features
+    explanation["deep_scan"] = deep_meta
+    explanation["redirect_analysis"] = redirect_analysis
+    explanation["content_analysis"] = content_analysis
     return explanation
 
 
