@@ -21,6 +21,22 @@ MAX_REDIRECTS = 10
 REQUEST_TIMEOUT = 6
 MAX_HTML_BYTES = 512 * 1024  # 512 KB cap for safety
 
+# Known aggressive ad-redirect, popunder, and malvertising networks
+AD_REDIRECT_NETWORKS = {
+    "popads", "popcash", "propellerads", "adsterra", "monetag", "onclicka",
+    "hilltopads", "exoclick", "juicyads", "trafficjunky", "tsyndicate",
+    "realsrv", "acscdn", "admaven", "adcash", "clickadu", "notifpush",
+    "highperformanceformat", "profitabledisplaynetwork", "topcreativeformat",
+    "effectivegatecpm", "betteradsystem", "pubfuture", "richads", "galaksion",
+    "histats", "whos.amung.us", "shorte.st", "adf.ly", "ouo.io",
+}
+
+BENIGN_CDN_DOMAINS = {
+    "googleapis.com", "gstatic.com", "cloudflare.com", "jsdelivr.net",
+    "unpkg.com", "cdnjs.com", "bootstrapcdn.com", "fontawesome.com",
+    "jquery.com", "googletagmanager.com", "google-analytics.com",
+}
+
 
 def _get_registered_domain(hostname: str) -> str:
     """Extracts an approximate registered domain (e.g. 'sub.paypal.com' -> 'paypal.com')."""
@@ -140,6 +156,14 @@ class _WebsiteHTMLParser(HTMLParser):
         self.external_links = 0
         self.total_scripts = 0
         self.external_scripts = 0
+        self.external_script_domains = set()
+        self.ad_network_scripts: List[str] = []
+
+        self.in_script = False
+        self.script_parts: List[str] = []
+        self.js_popup_or_redirect_hits = 0
+        self.obfuscated_js_hits = 0
+        self.inline_click_hijack_count = 0
 
         self.favicon_external = False
         self.favicon_url: Optional[str] = None
@@ -154,6 +178,12 @@ class _WebsiteHTMLParser(HTMLParser):
         oncontext = attr_dict.get("oncontextmenu", "").lower()
         if "return false" in oncontext or "preventdefault" in oncontext:
             self.right_click_disabled = True
+
+        # Check inline click hijacking (onclick / onmousedown opening external windows)
+        for ev_attr in ("onclick", "onmousedown"):
+            ev_val = attr_dict.get(ev_attr, "").lower()
+            if ev_val and ("window.open" in ev_val or "http://" in ev_val or "https://" in ev_val):
+                self.inline_click_hijack_count += 1
 
         if tag == "title":
             self.in_title = True
@@ -200,12 +230,19 @@ class _WebsiteHTMLParser(HTMLParser):
 
         elif tag == "script":
             self.total_scripts += 1
+            self.in_script = True
+            self.script_parts = []
             src = attr_dict.get("src", "").strip()
             if src:
                 resolved = urljoin(self.base_url, src)
-                script_domain = _get_registered_domain(urlparse(resolved).hostname or "")
+                script_host = (urlparse(resolved).hostname or "").lower()
+                script_domain = _get_registered_domain(script_host)
                 if script_domain and script_domain != self.base_domain:
                     self.external_scripts += 1
+                    if script_domain not in BENIGN_CDN_DOMAINS:
+                        self.external_script_domains.add(script_domain)
+                if any(ad_net in script_host for ad_net in AD_REDIRECT_NETWORKS):
+                    self.ad_network_scripts.append(resolved)
 
         elif tag == "link":
             rel = attr_dict.get("rel", "").lower()
@@ -227,12 +264,36 @@ class _WebsiteHTMLParser(HTMLParser):
                     self.meta_refresh_url = urljoin(self.base_url, match.group(1))
 
     def handle_endtag(self, tag: str):
-        if tag.lower() == "title":
+        t = tag.lower()
+        if t == "title":
             self.in_title = False
+        elif t == "script":
+            self.in_script = False
+            script_code = "".join(self.script_parts).lower()
+            if script_code:
+                # Detect JS popunder / click-hijack / programmatic external redirect
+                if (
+                    "window.open(" in script_code
+                    or "popunder" in script_code
+                    or "document.onclick" in script_code
+                    or "window.location.replace(" in script_code
+                ):
+                    self.js_popup_or_redirect_hits += 1
+                if (
+                    "eval(function(" in script_code
+                    or "string.fromcharcode" in script_code
+                    or "unescape(" in script_code
+                ):
+                    self.obfuscated_js_hits += 1
+                if any(ad_net in script_code for ad_net in AD_REDIRECT_NETWORKS):
+                    self.ad_network_scripts.append("inline-ad-script")
+            self.script_parts = []
 
     def handle_data(self, data: str):
         if self.in_title:
             self.title_parts.append(data)
+        elif self.in_script:
+            self.script_parts.append(data)
 
     @property
     def title(self) -> str:
@@ -304,7 +365,9 @@ def analyze_website_and_redirects(raw_url: str) -> Dict[str, Any]:
     tracker = _RedirectTracker()
     opener = urllib.request.build_opener(tracker)
     opener.addheaders = [
-        ("User-Agent", "Mozilla/5.0 (compatible; PhishGuardAI/1.0; SecurityScanner)")
+        ("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"),
+        ("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"),
+        ("Accept-Language", "en-US,en;q=0.9"),
     ]
 
     final_url = start_url
@@ -379,9 +442,15 @@ def analyze_website_and_redirects(raw_url: str) -> Dict[str, Any]:
             else {"available": False}
         )
 
+        bot_protected = (
+            status_code in (403, 503)
+            and any(kw in title_lower for kw in ("just a moment", "attention required", "access denied", "cloudflare"))
+        )
+
         content_data = {
             "available": True,
             "http_status": status_code,
+            "bot_protected": bot_protected,
             "page_title": parser.title or "(No Title)",
             "title_brand_mismatch": title_brand_mismatch,
             "matched_title_brand": matched_title_brand,
@@ -397,6 +466,11 @@ def analyze_website_and_redirects(raw_url: str) -> Dict[str, Any]:
             "external_link_ratio": external_link_ratio,
             "total_scripts": parser.total_scripts,
             "external_scripts": parser.external_scripts,
+            "distinct_external_script_domains": len(parser.external_script_domains),
+            "ad_network_scripts": parser.ad_network_scripts,
+            "js_popup_or_redirect_hits": parser.js_popup_or_redirect_hits,
+            "obfuscated_js_hits": parser.obfuscated_js_hits,
+            "inline_click_hijack_count": parser.inline_click_hijack_count,
             "favicon_external": parser.favicon_external,
             "right_click_disabled": parser.right_click_disabled,
             "ssl_certificate": ssl_info,
@@ -416,20 +490,36 @@ def analyze_website_and_redirects(raw_url: str) -> Dict[str, Any]:
         redirect_safety_score -= 5
     if meta_refresh_url:
         redirect_safety_score -= 25
+
+    # Penalize JS-level popunders, click-hijacks, and ad-redirect scripts
+    if content_data.get("available"):
+        if content_data.get("ad_network_scripts"):
+            redirect_safety_score -= 40
+        if content_data.get("js_popup_or_redirect_hits", 0) > 0:
+            redirect_safety_score -= 30
+        if content_data.get("inline_click_hijack_count", 0) > 0:
+            redirect_safety_score -= 25
+
     redirect_safety_score = max(0, redirect_safety_score)
 
-    if redirect_count == 0 and not meta_refresh_url:
+    has_js_redirects = content_data.get("available") and (
+        bool(content_data.get("ad_network_scripts"))
+        or content_data.get("js_popup_or_redirect_hits", 0) > 0
+        or content_data.get("inline_click_hijack_count", 0) > 0
+    )
+
+    if redirect_count == 0 and not meta_refresh_url and not has_js_redirects:
         redirect_verdict = "NO REDIRECTS"
-        redirect_summary = "URL resolves directly with no HTTP or HTML redirects."
+        redirect_summary = "URL resolves directly with no HTTP, HTML, or JavaScript click-redirects detected."
     elif redirect_safety_score >= 75:
         redirect_verdict = "SAFE REDIRECT"
         redirect_summary = f"Followed {redirect_count} redirect(s) within expected safe bounds."
     elif redirect_safety_score >= 45:
         redirect_verdict = "SUSPICIOUS REDIRECT"
-        redirect_summary = "Cross-domain or multi-hop redirect detected. Verify the final destination."
+        redirect_summary = "Cross-domain redirect or JS popup/ad-redirect behavior detected. Proceed with caution."
     else:
         redirect_verdict = "DANGEROUS REDIRECT"
-        redirect_summary = "High-risk redirect behavior detected (HTTPS downgrade, cross-domain jump, or hidden meta refresh)."
+        redirect_summary = "High-risk redirect behavior detected (HTTPS downgrade, ad-redirect network, or JS click-hijack)."
 
     return {
         "fetched": fetch_error is None,

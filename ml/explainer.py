@@ -221,6 +221,36 @@ def explain_url(
                 "title": "Invalid or Self-Signed SSL Certificate",
                 "description": "The HTTPS certificate failed verification (self-signed, expired, or hostname mismatch)."
             })
+        if content_analysis.get("ad_network_scripts"):
+            findings.append({
+                "severity": "CRITICAL",
+                "title": f"Aggressive Ad / Popunder Redirect Network ({len(content_analysis['ad_network_scripts'])})",
+                "description": "The page embeds scripts from known popunder or ad-redirect networks that hijack clicks and redirect users to junk or malicious ads."
+            })
+        if content_analysis.get("js_popup_or_redirect_hits", 0) > 0 or content_analysis.get("inline_click_hijack_count", 0) > 0:
+            findings.append({
+                "severity": "HIGH",
+                "title": "JavaScript Click-Hijacking / Popup Redirect",
+                "description": "Detected JavaScript patterns (window.open, document.onclick, or inline click handlers) that trigger unwanted redirects when clicking links."
+            })
+        if content_analysis.get("obfuscated_js_hits", 0) > 0:
+            findings.append({
+                "severity": "HIGH",
+                "title": "Obfuscated JavaScript Payload Detected",
+                "description": "Found eval/fromCharCode/unescape obfuscation often used to hide malicious redirect or malvertising code."
+            })
+        if content_analysis.get("distinct_external_script_domains", 0) >= 4:
+            findings.append({
+                "severity": "MEDIUM",
+                "title": f"High Third-Party Script Count ({content_analysis['distinct_external_script_domains']} domains)",
+                "description": "The page loads scripts from many unrelated external domains, increasing exposure to malvertising and unwanted redirects."
+            })
+        if content_analysis.get("bot_protected"):
+            findings.append({
+                "severity": "MEDIUM",
+                "title": "Live HTML Blocked by Anti-Bot / Cloudflare Shield",
+                "description": f"The site returned HTTP {content_analysis.get('http_status')} anti-bot challenge, preventing full inspection of its click-redirect scripts."
+            })
 
     # If completely safe
     if not findings and risk_percentage < 35:

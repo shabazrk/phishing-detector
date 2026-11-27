@@ -17,10 +17,12 @@ TARGET_BRANDS = [
     "binance", "coinbase", "metamask", "steam", "adobe", "yahoo"
 ]
 
-# High risk TLDs frequently abused in disposable/free phishing campaigns
+# High risk TLDs frequently abused in disposable/free phishing & ad-redirect campaigns
 HIGH_RISK_TLDS = {
     "xyz", "top", "tk", "ml", "ga", "cf", "gq", "buzz", "work",
-    "fit", "surf", "cn", "ru", "icu", "club", "live", "vip", "link"
+    "fit", "surf", "cn", "ru", "icu", "club", "live", "vip", "link",
+    "watch", "to", "sx", "cc", "ws", "cam", "cfd", "sbs", "click",
+    "rest", "stream", "site", "online", "fun"
 }
 
 # Free cloud hosting / PaaS domains often targeted for disposable credential phishing

@@ -274,6 +274,8 @@ function renderScanResult(data) {
           { label: "Forms / Password Inputs", val: `${ca.form_count} form(s) • Password field: ${ca.has_password_field ? "Yes" : "No"}`, warn: ca.has_password_field && data.risk_percentage >= 35 },
           { label: "External Form Actions", val: ca.external_form_actions && ca.external_form_actions.length > 0 ? `${ca.external_form_actions.length} external target(s)` : "None", warn: ca.external_form_actions && ca.external_form_actions.length > 0 },
           { label: "Iframes (Hidden)", val: `${ca.iframe_count} total (${ca.hidden_iframe_count} hidden)`, warn: ca.hidden_iframe_count > 0 },
+          { label: "Ad / Click-Hijack Scripts", val: `${(ca.ad_network_scripts || []).length} ad-net • ${(ca.js_popup_or_redirect_hits || 0) + (ca.inline_click_hijack_count || 0)} JS hijack`, warn: (ca.ad_network_scripts && ca.ad_network_scripts.length > 0) || (ca.js_popup_or_redirect_hits || 0) > 0 || (ca.inline_click_hijack_count || 0) > 0 },
+          { label: "3rd-Party Script Domains", val: `${ca.distinct_external_script_domains || 0} domain(s) (${ca.external_scripts || 0}/${ca.total_scripts || 0} scripts)`, warn: (ca.distinct_external_script_domains || 0) >= 4 },
           { label: "External Link Ratio", val: `${Math.round((ca.external_link_ratio || 0) * 100)}% (${ca.external_links}/${ca.total_links})`, warn: false },
           { label: "External Favicon / No Right-Click", val: `Favicon: ${ca.favicon_external ? "External" : "Same-origin"} • Right-Click: ${ca.right_click_disabled ? "Blocked" : "Normal"}`, warn: ca.favicon_external || ca.right_click_disabled }
         ];

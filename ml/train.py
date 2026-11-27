@@ -212,6 +212,18 @@ def predict_url(raw_url: str, deep_scan: bool = True) -> Dict[str, Any]:
             ssl_cert = content_analysis.get("ssl_certificate", {})
             if ssl_cert.get("available") and not ssl_cert.get("valid", True):
                 risk_boost += 0.30
+            if content_analysis.get("ad_network_scripts"):
+                risk_boost += 0.40
+            if content_analysis.get("js_popup_or_redirect_hits", 0) > 0:
+                risk_boost += 0.30
+            if content_analysis.get("inline_click_hijack_count", 0) > 0:
+                risk_boost += 0.25
+            if content_analysis.get("obfuscated_js_hits", 0) > 0:
+                risk_boost += 0.25
+            if content_analysis.get("distinct_external_script_domains", 0) >= 4:
+                risk_boost += 0.20
+            if content_analysis.get("bot_protected") and features.get("high_risk_tld", 0) == 1:
+                risk_boost += 0.30
 
         prob_phishing = min(1.0, prob_phishing + risk_boost)
 
